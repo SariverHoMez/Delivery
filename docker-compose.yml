@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # 1. Backend Service (Node.js)
+  backend:
+    build: ./backend
+    container_name: backend_service
+    ports:
+      - "3001:3001" # Host:Container
+    volumes:
+      - ./backend:/app
+      - backend_node_modules:/app/node_modules
+    environment:
+      - DB_HOST=db
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # 2. Frontend Service (Vite + React)
+  frontend:
+    build: ./frontend
+    container_name: frontend_service
+    ports:
+      - "5173:5173" # Vite default port
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    stdin_open: true # Important for Vite dev server
+    tty: true
+    restart: unless-stopped
+
+  # 3. Database Service (MariaDB)
+  db:
+    image: mariadb:10.6 # หรือ mysql:8.0
+    container_name: db_service
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306" # Connect from host if needed (e.g., HeidiSQL)
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+  # 4. phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin_service
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+    depends_on:
+      - db
+    restart: unless-stopped
+
+# Volumes for data persistence
+volumes:
+  db_data:
+  backend_node_modules:
+  frontend_node_modules:
